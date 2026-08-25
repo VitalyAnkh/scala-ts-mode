@@ -87,7 +87,7 @@
 (defvar scala-ts--keywords
   '("case" "class" "enum" "extends" "derives" "finally"
     "object" "override" "package" "trait" "type" "val"
-    "var" "with" "given" "using" "end" "implicit" "new"
+    "var" "with" "given" "using" "implicit" "new"
     "extension" "with" "def" "import" "export" "macro")
   "Keywords for `scala-ts-mode'.")
 
