@@ -323,7 +323,7 @@
                                   (string= label
                                            (treesit-node-text
                                             (treesit-node-child node 0 t))))))))
-     ;; indent end <everything eles> correctly
+     ;; indent end <everything else> correctly
      (t
       (save-excursion
         (goto-char (treesit-node-start node))
