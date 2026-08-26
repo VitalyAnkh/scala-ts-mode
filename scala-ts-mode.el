@@ -43,7 +43,6 @@
 (declare-function treesit-node-child-by-field-name "treesit.c")
 (declare-function treesit-parent-while "treesit.c")
 (declare-function treesit-parent-until "treesit.c")
-(declare-function treesit-node-prev-sibling "treesit.c")
 (declare-function treesit-node-next-sibling "treesit.c")
 (declare-function treesit-node-type "treesit.c")
 (declare-function treesit-node-text "treesit.c")
@@ -293,43 +292,26 @@
   "Treesitter font-lock settings for `scala-ts-mode'.")
 
 ;; BEGIN: Helper functions for indentation
-(defun scala-ts--indent-end (node &rest _)
-  "Return anchor position for end clause NODE."
-  (let ((label (treesit-node-text (treesit-node-next-sibling node) t)))
-    (cond
-     ;; Check if end <identifier> is already correctly indented
-     ((let ((next-sibling (treesit-node-next-sibling node))
-            (prev-sibling (treesit-node-prev-sibling node)))
-        (and (string=
-              (treesit-node-type next-sibling)
-              "_end_ident")
-             (string-match-p
-              "definition"
-              (treesit-node-type prev-sibling))
-             (string=
-              label
-              (treesit-node-text
-               (treesit-node-child prev-sibling 0 t)))
-             (treesit-node-start prev-sibling))))
-     ;; indent end <identifier> correctly
-     ((string= (treesit-node-type (treesit-node-next-sibling node))
-               "_end_ident")
-      (treesit-node-start (treesit-parent-until
-                           node
-                           (lambda (node)
-                             (and (string-match-p
-                                   "definition"
-                                   (treesit-node-type node))
-                                  (string= label
-                                           (treesit-node-text
-                                            (treesit-node-child node 0 t))))))))
-     ;; indent end <everything else> correctly
-     (t
-      (save-excursion
-        (goto-char (treesit-node-start node))
-        (re-search-backward label)
-        (back-to-indentation)
-        (point))))))
+(defun scala-ts--end-marker-node-at (node bol)
+  "Return the end marker represented by NODE at BOL, if any."
+  (if (and node (scala-ts--node-type= "end_marker" node))
+      node
+    (let ((named-node (treesit-node-at bol nil t)))
+      (and named-node
+           (scala-ts--node-type= "end_marker" named-node)
+           named-node))))
+
+(defun scala-ts--end-marker-at-bol-p (node _parent bol)
+  "Return non-nil when NODE at BOL represents an end marker."
+  (scala-ts--end-marker-node-at node bol))
+
+(defun scala-ts--indent-end-marker (node _parent bol)
+  "Return the anchor for the construct closed by NODE at BOL."
+  (let ((marker (scala-ts--end-marker-node-at node bol)))
+    (save-excursion
+      (goto-char (treesit-node-start (treesit-node-parent marker)))
+      (back-to-indentation)
+      (point))))
 
 (defun scala-ts--indent-if-anchor (node parent &rest _)
   "Return anchor position for NODE when PARENT is if_expression."
@@ -486,6 +468,8 @@ or node matching `treesit-defun-type-regexp' is found."
     `((scala
        ((node-is "^comment$") no-indent 0)
 
+       (scala-ts--end-marker-at-bol-p scala-ts--indent-end-marker 0)
+
        ((node-is "^}$") parent-bol 0)
        ((node-is "^)$") parent-bol 0)
 
@@ -516,8 +500,6 @@ or node matching `treesit-defun-type-regexp' is found."
             ,offset)))
        ((parent-is "^case_clause$") parent-bol ,offset)
        
-       ((node-is "^end$") scala-ts--indent-end 0)
-
        ;; Handle function annotations
        ((n-p-gp "^def$" "^function_definition$" nil) parent 0)
 
