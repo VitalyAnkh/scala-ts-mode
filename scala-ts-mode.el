@@ -87,7 +87,7 @@
 (defvar scala-ts--keywords
   '("case" "class" "enum" "extends" "derives" "finally"
     "object" "override" "package" "trait" "type" "val"
-    "var" "with" "given" "using" "end" "implicit" "new"
+    "var" "with" "given" "using" "implicit" "new"
     "extension" "with" "def" "import" "export" "macro")
   "Keywords for `scala-ts-mode'.")
 
@@ -323,7 +323,7 @@
                                   (string= label
                                            (treesit-node-text
                                             (treesit-node-child node 0 t))))))))
-     ;; indent end <everything eles> correctly
+     ;; indent end <everything else> correctly
      (t
       (save-excursion
         (goto-char (treesit-node-start node))
